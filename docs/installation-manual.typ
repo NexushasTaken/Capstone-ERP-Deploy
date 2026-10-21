@@ -64,6 +64,7 @@ The installation package is a single file named `InventorySystem-<date>.zip`. @i
     [`database\`], [`migrate.exe`, which creates the database tables during setup.],
     [`config\`], [Settings. Setup writes the computer's own settings here.],
     [`VERSION.txt`], [The version of the server and the website, and the build date.],
+    [`Installation Manual.pdf`], [This manual.],
   ),
   caption: [Contents of the installation package],
 ) <im-package-contents>
@@ -276,6 +277,7 @@ The script:
 - builds `migrate.exe` with `dotnet ef migrations bundle --target-runtime win-x64 --self-contained`; setup runs it to create the tables;
 - builds the Frontend with `npm run build` (`output: "standalone"` in `next.config.ts`) and copies `.next/standalone`, `.next/static` and `public`; Node.js on the office PC runs `server.js`;
 - copies the Windows scripts from `deploy/windows/` with Windows (CRLF) line endings, and writes `VERSION.txt`;
+- copies `deploy/docs/installation-manual.pdf` as `Installation Manual.pdf`, so run `typst compile docs/installation-manual.typ` and commit the PDF after editing this manual (the script stops if the PDF is older than its `.typ` sources);
 - checks the result and stops with an error if a required file is missing or a secret leaked.
 
 == What never goes into the package <im-dev-secrets>

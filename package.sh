@@ -49,6 +49,27 @@ for repo in "$backend" "$frontend"; do
   fi
 done
 
+# The package ships the committed installation-manual.pdf, so it must be built from the current
+# sources. Checked before the long build so a stale PDF fails fast.
+manual_pdf="docs/installation-manual.pdf"
+[[ "$(git -C "$deploy" rev-parse --is-shallow-repository)" == false ]] ||
+  die "deploy/ is a shallow clone; the manual check needs the full history (fetch-depth: 0)"
+for src in docs/installation-manual.typ docs/capstone-style.typ; do
+  stale="$manual_pdf is older than $src; run 'typst compile docs/installation-manual.typ' in deploy/ and commit the PDF"
+  if [[ -n "$(git -C "$deploy" status --porcelain -- "$src" "$manual_pdf")" ]]; then
+    # Edited but not committed: only the file times can tell.
+    [[ "$deploy/$manual_pdf" -nt "$deploy/$src" ]] || die "$stale"
+  else
+    # Committed: the PDF's last commit must not come before the source's last commit.
+    src_commit="$(git -C "$deploy" log -1 --format=%H -- "$src")"
+    pdf_commit="$(git -C "$deploy" log -1 --format=%H -- "$manual_pdf")"
+    [[ -n "$pdf_commit" ]] || die "$manual_pdf is not committed"
+    if [[ "$src_commit" != "$pdf_commit" ]] && git -C "$deploy" merge-base --is-ancestor "$pdf_commit" "$src_commit"; then
+      die "$stale"
+    fi
+  fi
+done
+
 backend_version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$backend/ERP.csproj" | head -1)"
 frontend_version="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' "$frontend/package.json")"
 [[ -n "$backend_version" && -n "$frontend_version" ]] || die "could not read the app versions"
@@ -118,6 +139,10 @@ for f in "$deploy/windows/tools/"*; do
 done
 cp "$deploy/config/appsettings.template.json" "$stage/config/"
 
+# The committed PDF; rebuild it with `typst compile docs/installation-manual.typ` after editing the manual.
+step "Copying the installation manual"
+cp "$deploy/docs/installation-manual.pdf" "$stage/Installation Manual.pdf"
+
 {
   echo "Inventory System"
   echo "Backend  $backend_version"
@@ -130,6 +155,7 @@ step "Checking the package"
 [[ -f "$stage/backend/ERP.exe" ]] || die "backend/ERP.exe is missing"
 [[ -f "$stage/frontend/server.js" ]] || die "frontend/server.js is missing"
 [[ -f "$stage/database/migrate.exe" ]] || die "database/migrate.exe is missing"
+[[ -f "$stage/Installation Manual.pdf" ]] || die "Installation Manual.pdf is missing"
 [[ ! -e "$stage/backend/appsettings.json" ]] || die "backend/appsettings.json must not ship"
 compgen -G "$stage/frontend/.env*" >/dev/null && die "a frontend .env file must not ship"
 
