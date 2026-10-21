@@ -26,11 +26,6 @@ if not defined PGBIN (
 )
 echo [1/7] PostgreSQL found: %PGBIN%
 
-rem The service name only lets Start System start a stopped database. Setup does not need it, so a
-rem failed lookup is not an error (failing here broke setup on a PC where PostgreSQL was running).
-set "PGSERVICE="
-for /f "tokens=2" %%S in ('sc query state^= all ^| findstr /r /c:"^SERVICE_NAME: postgresql"') do set "PGSERVICE=%%S"
-
 rem Give a just-installed or just-booted PostgreSQL up to 30 seconds to accept connections.
 set /a "LEFT=30"
 :pg_wait
@@ -96,7 +91,6 @@ if not exist "%ROOT%\backend\appsettings.json" goto :settings_failed
 set "SYS=%ROOT%\config\system.cmd"
 > "%SYS%" echo @rem Written by tools\Setup.bat. Settings shared by the Inventory System scripts.
 >>"%SYS%" echo set "PGBIN=%PGBIN%"
->>"%SYS%" echo set "PGSERVICE=%PGSERVICE%"
 >>"%SYS%" echo set "PGHOST=localhost"
 >>"%SYS%" echo set "PGPORT=%PGPORT%"
 >>"%SYS%" echo set "PGDATABASE=ERP"

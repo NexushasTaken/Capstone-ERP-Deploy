@@ -14,8 +14,8 @@ echo.
 rem --- 1. Database ------------------------------------------------------------
 call :db_ready
 if not errorlevel 1 goto :db_ok
-echo  - Starting the database...
-if defined PGSERVICE net start "%PGSERVICE%" >nul 2>&1
+rem PostgreSQL is a Windows service that starts with Windows; right after boot it may need a moment.
+echo  - Waiting for the database...
 call :wait_db 20
 if errorlevel 1 goto :db_failed
 :db_ok
