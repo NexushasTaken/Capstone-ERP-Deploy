@@ -1,0 +1,67 @@
+# Build the Windows release package with package.sh and publish it as a GitHub Release.
+#
+# Run it either way:
+#   - push a tag:  git tag v1.0.0 && git push origin v1.0.0
+#   - Actions tab -> Release -> Run workflow, and type a version (the tag is created for you)
+#
+# Backend and Frontend are built from their master branch on GitHub, so push them first.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write # create the release and its tag
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.version || github.ref_name }}
+    steps:
+      # Same layout as on the dev machine: deploy/, Backend/ and Frontend/ side by side.
+      - uses: actions/checkout@v4
+        with:
+          path: deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: NexushasTaken/Capstone-ERP-Backend
+          ref: master
+          path: Backend
+      - uses: actions/checkout@v4
+        with:
+          repository: NexushasTaken/Capstone-ERP-Frontend
+          ref: master
+          path: Frontend
+
+      # Backend targets net9.0; dotnet-ef matches the EF Core package version in ERP.csproj.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - run: dotnet tool install --global dotnet-ef --version 9.0.18
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+      - run: npm ci
+        working-directory: Frontend
+
+      - run: ./deploy/package.sh --compress=max
+
+      - name: Publish the release
+        run: |
+          gh release create "$TAG" deploy/dist/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Inventory System $TAG" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
