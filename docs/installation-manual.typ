@@ -1,7 +1,7 @@
-// Installation Manual: installing the Inventory System on one Windows office PC, running it day to day, backups,
-// and (last section) building the release package on the developer's Linux machine. Module usage is in manual.typ.
+// Installation Manual: installing the Inventory System on one Windows office PC, running it day to day, and backups.
+// Module usage is in manual.typ. Building the package is described in package.sh itself.
 // Page format is the capstone paper's (capstone-style.typ), with plain 1 / 1.1 headings.
-// The Windows steps and .bat scripts were written on Linux; screenshots are placeholders until taken on Windows.
+// The .bat scripts were written on Linux and tested on Windows 10 on 2026-10-22; screenshots are in figures/.
 // Build: typst compile docs/installation-manual.typ   (from deploy/; capstone-style.typ is a copy of the one in
 //        ../docs/capstone-documentation/, keep the two in sync)
 
@@ -10,13 +10,9 @@
 #set document(title: "Inventory System: Installation Manual")
 #show: capstone-style.with(chapters: false)
 
-// Grey box standing in for a Windows screenshot that has not been taken yet.
-#let screenshot(caption) = figure(
-  rect(width: 100%, height: 5cm, fill: luma(240), stroke: (dash: "dashed", paint: luma(150)))[
-    #set align(center + horizon)
-    #set par(first-line-indent: 0pt)
-    #text(fill: luma(110))[Screenshot to be added]
-  ],
+// A Windows screenshot from figures/, with a thin border so dark windows and white pages stay apart.
+#let screenshot(file, caption, width: 100%) = figure(
+  box(stroke: 0.5pt + luma(150), image("figures/" + file, width: width)),
   caption: caption,
 )
 
@@ -43,7 +39,7 @@ The manual has two kinds of reader:
 - *The person installing the system* (sections 2, 3 and 6) sets it up once: installs the required programs, runs the setup tool and signs in for the first time. This person should be comfortable installing Windows programs.
 - *The Store Owner and the Secretary* (sections 4, 5 and 6) use the desktop shortcuts to start and stop the system, check it, and make backups. No technical knowledge is needed.
 
-Section 7 is for the developers who build the installation package. How to use each module of the system (orders, inventory, forecasting and so on) is explained in the separate User Manual.
+How to use each module of the system (orders, inventory, forecasting and so on) is explained in the separate User Manual.
 
 The installation package is a single file named `InventorySystem-<date>.zip`. @im-package-contents lists what it contains.
 
@@ -64,7 +60,6 @@ The installation package is a single file named `InventorySystem-<date>.zip`. @i
     [`database\`], [`migrate.exe`, which creates the database tables during setup.],
     [`config\`], [Settings. Setup writes the computer's own settings here.],
     [`VERSION.txt`], [The version of the server and the website, and the build date.],
-    [`Installation Manual.pdf`], [This manual.],
   ),
   caption: [Contents of the installation package],
 ) <im-package-contents>
@@ -101,7 +96,9 @@ These steps are done once, by the person installing the system, while signed in 
 + Keep the default port, *5432*, and the default locale.
 + At the end, untick _Launch Stack Builder_; it is not needed.
 
-#screenshot[PostgreSQL installer: superuser password]
+#screenshot("postgres-password.png", width: 75%)[PostgreSQL installer: superuser password]
+
+#screenshot("postgres-stack-builder.png", width: 75%)[PostgreSQL installer: _Launch Stack Builder_ unticked]
 
 == Install Node.js <im-install-nodejs>
 
@@ -117,7 +114,7 @@ These steps are done once, by the person installing the system, while signed in 
 
 #note[The folder can be anywhere on the computer, but the rest of this manual uses `C:\InventorySystem`. Do not move the folder after setup; if it is moved, run setup again.]
 
-#screenshot[The `C:\InventorySystem` folder after extracting]
+#screenshot("install-folder.png", width: 75%)[The `C:\InventorySystem` folder after extracting]
 
 == Run the setup tool <im-run-setup>
 
@@ -127,7 +124,7 @@ These steps are done once, by the person installing the system, while signed in 
 + Setup then works on its own. It creates the system's own database user (`erp`) with a new random password, creates the database named `ERP`, writes the settings, creates the tables with the system's default data, and puts five shortcuts on the desktop: *Start System*, *Stop System*, *Restart System*, *Check System* and *Backup Database*.
 + When it shows _Setup finished_, press *Y* to start the system.
 
-#screenshot[Setup.bat after a successful setup]
+#screenshot("setup-finished.png")[Setup.bat after a successful setup]
 
 Setup creates no sample products, orders or sales. The database starts with only what the system needs to work: the roles, the order and stock statuses, the default units of measurement, the standard discounts (such as the senior citizen and PWD discounts), and two user accounts (@im-default-accounts).
 
@@ -136,6 +133,8 @@ Setup creates no sample products, orders or sales. The database starts with only
 == First sign-in <im-first-sign-in>
 
 The browser opens the system at `http://localhost:3000`. Sign in with the Owner account from @im-default-accounts.
+
+#screenshot("sign-in.png")[The sign-in page, opened by Start System]
 
 #figure(
   table(
@@ -167,7 +166,7 @@ The Owner and the Secretary run the system with the shortcuts on the desktop.
 + When all three show *OK*, the system opens in the browser by itself. The window closes after a few seconds.
 + Sign in with your email and password.
 
-#screenshot[Start System with the Database, Server and Website all OK]
+#screenshot("start-system.png")[Start System with the Database, Server and Website all OK]
 
 Two small windows named _Inventory System - Server_ and _Inventory System - Website_ appear minimized on the taskbar. *Do not close them*: they are the system. Closing one stops that part of the system.
 
@@ -184,7 +183,7 @@ The database itself keeps running in the background. It starts by itself with Wi
 - *Restart System* stops and starts the system. Use it first whenever the system seems stuck.
 - *Check System* shows, in plain words, whether the _Database_, the _Server_ and the _Website_ are running (*OK* or *NOT RUNNING*), what to do if one is not, and the system's version.
 
-#screenshot[Check System when everything is running]
+#screenshot("check-system.png")[Check System when everything is running]
 
 = Troubleshooting <im-troubleshooting>
 
@@ -198,6 +197,7 @@ Most problems are solved by *Restart System*. When that does not help, @im-troub
     [The browser says the page can't be reached (`localhost:3000`)], [The system is not running. Double-click *Start System*.],
     [_Something went wrong_ in the system], [The website cannot reach the server. Double-click *Restart System*, then sign in again.],
     [_Session Expired_], [You were signed out, for example after a long time or after setup was run again. Press *Return to Login* and sign in.],
+    [Setup says PostgreSQL is not answering on port 5432], [Setup waits 30 seconds for PostgreSQL, then shows PostgreSQL's own message. Check that PostgreSQL was installed with port 5432 and that the _postgresql-x64-18_ service is running in Windows _Services_, then run setup again.],
     [Start System says the _Database_ did not start], [Restart the computer and try again. If it still fails, the person installing should check that the _postgresql-x64-18_ service is running and set to _Automatic_ in Windows _Services_.],
     [Start System says the _Server_ or _Website_ did not start within the time limit], [Double-click *Restart System*. If it fails again, restart the computer. If it still fails, send the log file named in the message to the person who installed the system.],
     [A part shows *NOT RUNNING* in Check System], [Double-click *Restart System*.],
@@ -237,7 +237,7 @@ All of the store's data (products, stock, orders, sales, purchases, accounts and
 + The window shows where the backup was saved, and a folder window opens with the new file selected. Backups are saved in the _Documents_ folder, in _Inventory Backups_, with the date and time in the name, for example `ERP-20261021-173000.backup`.
 + Copy the newest backup to a USB drive or to cloud storage regularly, so a copy survives if the computer is lost.
 
-#screenshot[Backup Database after a successful backup]
+#screenshot("backup-folder.png", width: 75%)[A new backup in the _Inventory Backups_ folder]
 
 Make a backup at least *once a day* at closing time, and always before running setup again or restoring a backup. Old backups can be deleted once there are newer ones saved elsewhere; a backup is usually small.
 
@@ -253,59 +253,3 @@ Restoring *replaces all current data* with the data in the backup, so anything r
 If the restore fails, the message names the `before-restore` backup; restoring that file puts the data back as it was.
 
 To *move the system to a new computer*: make a backup on the old computer, install the system on the new one (@im-installation), then restore the backup there. The accounts and passwords from the backup apply after the restore.
-
-= For Developers: Building the Release Package <im-developers>
-
-The release package is built on the developer's Linux machine by one script, `deploy/package.sh`, in the project folder next to `Backend/` and `Frontend/`. It builds a Windows package; it does not run anything on Windows.
-
-== Prerequisites <im-dev-prerequisites>
-
-- The .NET SDK (9 or newer) and the Entity Framework tool: `dotnet tool install --global dotnet-ef`.
-- Node.js and npm, with the Frontend's packages installed (`npm install` in `Frontend/`).
-- `git` and `zip`.
-- Internet access the first time, to download the Windows runtime packs for .NET.
-
-== Building <im-dev-building>
-
-+ Commit all changes in `Backend/` and `Frontend/`. The script refuses to package uncommitted changes unless it is run with `--allow-dirty`, so the package always matches a version in git.
-+ Run `./deploy/package.sh` from the project folder. To change how hard the zip is compressed, add `--compress=max` for the smallest file (slower) or `--compress=none` to store the files uncompressed (fastest, biggest file). Without it, zip's default level is used.
-+ The result is `deploy/dist/InventorySystem-<YYYY.MM.DD>.zip`.
-
-The script:
-
-- exports the committed Backend with `git archive` and publishes it with `dotnet publish -c Release -r win-x64 --self-contained`, so the office PC needs no .NET installed;
-- builds `migrate.exe` with `dotnet ef migrations bundle --target-runtime win-x64 --self-contained`; setup runs it to create the tables;
-- builds the Frontend with `npm run build` (`output: "standalone"` in `next.config.ts`) and copies `.next/standalone`, `.next/static` and `public`; Node.js on the office PC runs `server.js`;
-- copies the Windows scripts from `deploy/windows/` with Windows (CRLF) line endings, and writes `VERSION.txt`;
-- copies `deploy/docs/installation-manual.pdf` as `Installation Manual.pdf`, so run `typst compile docs/installation-manual.typ` and commit the PDF after editing this manual (the script stops if the PDF is older than its `.typ` sources);
-- checks the result and stops with an error if a required file is missing or a secret leaked.
-
-== What never goes into the package <im-dev-secrets>
-
-The developer's `Backend/appsettings.json` holds the development database password and sign-in (JWT) key, and `Frontend/.env` holds development settings, including one that turns off HTTPS certificate checks. None of them is shipped:
-
-- The Backend is built with `deploy/config/appsettings.template.json` in place of `appsettings.json`, and the generated `appsettings.json` is removed from the output. On the office PC, `Setup.bat` writes `backend\appsettings.json` from the template with a new random database password and JWT key.
-- The `.env` file that Next.js copies into `.next/standalone` is deleted. `Start System.bat` sets the website's settings (`PORT`, `HOSTNAME`, `BACKEND_API_URL`) itself.
-- Before zipping, the script searches the whole package for the development JWT key and database password and stops if either is found.
-
-== Versions <im-dev-versions>
-
-The Backend version comes from `<Version>` in `ERP.csproj` and the Frontend version from `package.json`, both following Semantic Versioning and the `CHANGELOG.md` of each repository. `VERSION.txt` in the package records both and the build date, and *Check System* shows it on the office PC.
-
-== Production settings <im-dev-settings>
-
-#figure(
-  table(
-    columns: (auto, 1fr),
-    align: (left, left),
-    [Setting], [Value on the office PC],
-    [Server address], [`http://localhost:5176` (`Urls` in `appsettings.json`); production mode, so Swagger is off],
-    [Website address], [`http://127.0.0.1:3000`, opened as `http://localhost:3000`],
-    [Database], [PostgreSQL on `localhost:5432`, database `ERP`, owned by the role `erp`],
-    [Shared script settings], [`config\system.cmd`, written by setup: PostgreSQL folder and service, database login, Node.js path],
-    [Logs], [`logs\server.log` and `logs\website.log`; the previous run's logs are kept as `*.old.log`],
-  ),
-  caption: [Production settings],
-) <im-dev-settings-table>
-
-#note[The scripts were written on Linux. Before this manual is final, the whole procedure in sections 3 to 6 must be done once on a real Windows 10 or 11 computer, and the screenshots taken there.]
