@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Build the Windows release package: deploy/dist/InventorySystem-<YYYY.MM.DD>.zip
 #
-# Usage: ./deploy/package.sh [--allow-dirty]
-#   --allow-dirty  package even if Backend/ or Frontend/ has uncommitted changes
+# Usage: ./deploy/package.sh [--allow-dirty] [--compress=<max|none>]
+#   --allow-dirty     package even if Backend/ or Frontend/ has uncommitted changes
+#   --compress=max    smallest zip (zip -9, slower)
+#   --compress=none   store files uncompressed (zip -0, fastest, biggest)
+#   (no --compress)   zip's default level (-6)
 #
 # Needs: dotnet (SDK 9+), dotnet-ef, npm, zip, git. Runs on Linux; the output only runs on Windows x64.
 # Secrets never enter the package: the dev appsettings.json and Frontend .env are left out, and
@@ -14,13 +17,22 @@ root="$(dirname "$deploy")"
 backend="$root/Backend"
 frontend="$root/Frontend"
 
-allow_dirty=false
-[[ "${1:-}" == "--allow-dirty" ]] && allow_dirty=true
-
 die() {
   echo "package.sh: $*" >&2
   exit 1
 }
+
+allow_dirty=false
+zip_level=-6
+for arg in "$@"; do
+  case "$arg" in
+  --allow-dirty) allow_dirty=true ;;
+  --compress=max) zip_level=-9 ;;
+  --compress=none) zip_level=-0 ;;
+  *) die "unknown option '$arg' (see the usage at the top of this script)" ;;
+  esac
+done
+
 step() {
   echo
   echo "==> $*"
@@ -135,10 +147,10 @@ if [[ -f "$dev_settings" ]]; then
   [[ -n "$db_password" ]] && grep -rqF -- "Password=$db_password;" "$stage" && die "the dev DB password leaked into the package"
 fi
 
-step "Zipping"
+step "Zipping ($zip_level)"
 zip_file="$dist/$name.zip"
 rm -f "$zip_file"
-(cd "$build" && zip -qr "$zip_file" "$name")
+(cd "$build" && zip -qr "$zip_level" "$zip_file" "$name")
 
 echo
 echo "Done: $zip_file ($(du -h "$zip_file" | cut -f1))"

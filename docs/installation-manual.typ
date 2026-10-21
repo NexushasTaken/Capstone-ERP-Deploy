@@ -267,7 +267,7 @@ The release package is built on the developer's Linux machine by one script, `de
 == Building <im-dev-building>
 
 + Commit all changes in `Backend/` and `Frontend/`. The script refuses to package uncommitted changes unless it is run with `--allow-dirty`, so the package always matches a version in git.
-+ Run `./deploy/package.sh` from the project folder.
++ Run `./deploy/package.sh` from the project folder. To change how hard the zip is compressed, add `--compress=max` for the smallest file (slower) or `--compress=none` to store the files uncompressed (fastest, biggest file). Without it, zip's default level is used.
 + The result is `deploy/dist/InventorySystem-<YYYY.MM.DD>.zip`.
 
 The script:
