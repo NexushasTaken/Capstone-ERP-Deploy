@@ -26,19 +26,22 @@ if not defined PGBIN (
 )
 echo [1/7] PostgreSQL found: %PGBIN%
 
+rem The service name only lets Start System start a stopped database. Setup does not need it, so a
+rem failed lookup is not an error (failing here broke setup on a PC where PostgreSQL was running).
 set "PGSERVICE="
-for /f "usebackq delims=" %%S in (`powershell -NoProfile -Command "(Get-Service -Name 'postgresql*' | Sort-Object Name | Select-Object -Last 1).Name"`) do set "PGSERVICE=%%S"
-if not defined PGSERVICE (
-    echo The PostgreSQL Windows service was not found. Reinstall PostgreSQL, then run this setup again.
-    goto :fail
-)
+for /f "tokens=2" %%S in ('sc query state^= all ^| findstr /r /c:"^SERVICE_NAME: postgresql"') do set "PGSERVICE=%%S"
 
+rem Give a just-installed or just-booted PostgreSQL up to 30 seconds to accept connections.
+set /a "LEFT=30"
+:pg_wait
 "%PGBIN%\pg_isready.exe" -q -h localhost -p %PGPORT%
-if errorlevel 1 (
-    echo PostgreSQL is not answering on port %PGPORT%.
-    echo Restart the computer, then run this setup again.
-    goto :fail
-)
+if not errorlevel 1 goto :pg_ok
+if %LEFT% LEQ 0 goto :pg_failed
+if %LEFT%==30 echo       Waiting for PostgreSQL to answer on port %PGPORT%...
+set /a "LEFT-=1"
+ping -n 2 127.0.0.1 >nul
+goto :pg_wait
+:pg_ok
 
 rem --- 2. Find Node.js ---------------------------------------------------------
 set "NODE="
@@ -133,6 +136,13 @@ choice /c YN /m "Start the system now"
 if errorlevel 2 exit /b 0
 call "%ROOT%\Start System.bat"
 exit /b 0
+
+:pg_failed
+echo PostgreSQL is not answering on port %PGPORT%. It said:
+"%PGBIN%\pg_isready.exe" -h localhost -p %PGPORT%
+echo Check that PostgreSQL was installed with port %PGPORT%, restart the computer,
+echo then run this setup again.
+goto :fail
 
 :secret_failed
 echo Could not generate the database password. Check that PowerShell is available.

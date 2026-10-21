@@ -15,7 +15,7 @@ rem --- 1. Database ------------------------------------------------------------
 call :db_ready
 if not errorlevel 1 goto :db_ok
 echo  - Starting the database...
-net start "%PGSERVICE%" >nul 2>&1
+if defined PGSERVICE net start "%PGSERVICE%" >nul 2>&1
 call :wait_db 20
 if errorlevel 1 goto :db_failed
 :db_ok
@@ -41,7 +41,8 @@ set "PORT=3000"
 set "HOSTNAME=127.0.0.1"
 set "BACKEND_API_URL=http://127.0.0.1:5176"
 set "NODE_ENV=production"
-start "Inventory System - Website (do not close)" /min /d "%ROOT%\frontend" cmd /c ""%NODE%" server.js > "%ROOT%\logs\website.log" 2>&1"
+rem keep-title.js stops Next.js from renaming this window to "next-server (vX)".
+start "Inventory System - Website (do not close)" /min /d "%ROOT%\frontend" cmd /c ""%NODE%" -r "%ROOT%\tools\keep-title.js" server.js > "%ROOT%\logs\website.log" 2>&1"
 call :wait_port 3000 30
 if errorlevel 1 goto :website_failed
 :website_ok

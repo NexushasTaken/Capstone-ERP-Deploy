@@ -3,7 +3,8 @@ rem Stops the website and the server by the ports they listen on (3000 and 5176)
 rem The database keeps running; it is a Windows service and uses little memory.
 rem "Stop System.bat quiet" skips the final pause.
 setlocal EnableExtensions
-title Inventory System - Stop
+rem Called quietly from Setup/Restart/Restore, it must not rename their window.
+if /i not "%~1"=="quiet" title Inventory System - Stop
 
 echo Stopping the Inventory System...
 call :stop_port 3000
